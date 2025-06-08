@@ -1,53 +1,54 @@
-/* documind/assets/style.qss */
+/* Light Theme for DocuMind */
 
 QWidget {
-    background-color: #2e2e2e; /* Dark background */
-    color: #e0e0e0;            /* Light text */
+    background-color: #f0f0f0; /* Light background */
+    color: #1e1e1e;            /* Dark text */
     font-family: Arial, sans-serif;
 }
 
 QMainWindow {
-    background-color: #252525;
+    background-color: #e8e8e8;
 }
 
 /* Style for Buttons */
 QPushButton {
-    background-color: #5a5a5a;
-    color: #ffffff;
-    border: 1px solid #4a4a4a;
+    background-color: #dcdcdc;
+    color: #1e1e1e;
+    border: 1px solid #c0c0c0;
     padding: 8px 16px;
     border-radius: 4px;
     font-size: 14px;
 }
 
 QPushButton:hover {
-    background-color: #6a6a6a;
+    background-color: #e2e2e2;
+    border: 1px solid #b0b0b0;
 }
 
 QPushButton:pressed {
-    background-color: #4f4f4f;
+    background-color: #cfcfcf;
 }
 
 /* Style for the list of documents */
 QListWidget {
-    background-color: #3a3a3a;
-    border: 1px solid #4a4a4a;
+    background-color: #ffffff;
+    border: 1px solid #c8c8c8;
     border-radius: 4px;
     padding: 5px;
 }
 
 /* Style for the main chat/log display */
 QTextEdit {
-    background-color: #3a3a3a;
-    border: 1px solid #4a4a4a;
+    background-color: #ffffff;
+    border: 1px solid #c8c8c8;
     border-radius: 4px;
     font-size: 14px;
 }
 
 /* Style for the question input field */
 QLineEdit {
-    background-color: #4a4a4a;
-    border: 1px solid #5a5a5a;
+    background-color: #ffffff;
+    border: 1px solid #c8c8c8;
     border-radius: 4px;
     padding: 8px;
     font-size: 14px;
@@ -57,14 +58,14 @@ QLineEdit {
 QLabel {
     font-size: 14px;
     font-weight: bold;
-    color: #cccccc;
+    color: #333333;
 }
 
 /* Style for the splitter handle */
 QSplitter::handle {
-    background-color: #4a4a4a;
+    background-color: #d0d0d0;
 }
 
 QSplitter::handle:hover {
-    background-color: #5a5a5a;
+    background-color: #c0c0c0;
 }
