@@ -285,3 +285,42 @@ This is a straightforward extension of your ingestion pipeline.
   * **Result:** The rest of your pipeline—chunking, embedding, storing, and querying—remains exactly the same. You've just made the "text extraction" part more versatile.
 
 This phased approach allows you to achieve a useful result quickly while building a solid foundation for a highly capable and private AI application. Good luck with your project\!
+
+## Packaging and Distribution Plan
+
+### **Packaging and Distribution Plan**
+
+This section covers how to turn your development project into a standalone application that non-technical users can easily run.
+
+#### **The Challenge: Removing External Dependencies**
+
+A non-technical user cannot be expected to install and run a command-line tool like Ollama. The goal is a "double-click to run" experience. This requires a shift in technology from the development phase.
+
+#### **The Solution: Integrated LLM and Packaging**
+
+* **Distribution LLM Runner: `llama-cpp-python`**
+  * **What it is:** A Python library that allows you to load and run specially formatted LLM files (with a `.gguf` extension) *directly within your Python code*.
+  * **Its Purpose:** This **replaces the need for Ollama** in your final application. It's like embedding the LLM's brain directly into your app, making it truly self-contained.
+
+* **Packaging Tool: PyInstaller**
+  * **What it is:** A powerful tool that analyzes your Python project and "shrink-wraps" your script, all its library dependencies, and the Python interpreter itself into a single executable file (`.exe` for Windows, `.app` for Mac).
+  * **Its Purpose:** This creates the final, distributable application file that users can simply double-click to install and run without any setup.
+
+#### **Action Plan for Distribution**
+
+1. **Refactor Your Code:** Modify your query logic. Replace the API call to the Ollama server with direct calls to the `llama-cpp-python` library. You will load the model directly from a file path.
+
+2. **Implement a Model Downloader:** The LLM model files (`.gguf`) are several gigabytes and should not be included in the installer. Instead:
+    * On the application's first launch, check if the model file exists in a user-specific data directory.
+    * If it doesn't, display a "First-Time Setup" window in your GUI.
+    * Programmatically download the required `.gguf` model from a source like **Hugging Face Hub**, making sure to **show a progress bar** so the user knows what's happening.
+
+3. **Create the Executable:** Once your code is refactored and the downloader is in place, use **PyInstaller** to package your application. A typical command would be:
+
+    ```bash
+    pyinstaller --name "DocuMind" --windowed --onefile your_main_script.py
+    ```
+
+4. **Test Thoroughly:** Test the final executable on clean machines (both Windows and Mac) that have never had Python or any of these tools installed to ensure the entire process works as expected for a new user.
+
+By following this comprehensive plan, you will not only learn the fundamentals of building an AI application but also gain the practical skills needed to package and share your creation with others.
