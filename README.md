@@ -1,2 +1,4 @@
+
 # documind
+
 Query documents locally
