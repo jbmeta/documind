@@ -1,6 +1,6 @@
 # Plan of Action
 
-## DocuMind: The Complete Project Plan (Direct File & Drag-and-Drop Edition)
+## DocuMind: The Complete Project Plan
 
 ### **1. Vision & Core Architecture**
 
