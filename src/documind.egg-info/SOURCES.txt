@@ -1,0 +1,14 @@
+README.md
+pyproject.toml
+src/documind/__init__.py
+src/documind/main.py
+src/documind.egg-info/PKG-INFO
+src/documind.egg-info/SOURCES.txt
+src/documind.egg-info/dependency_links.txt
+src/documind.egg-info/top_level.txt
+src/documind/core/__init__.py
+src/documind/core/ai_core.py
+src/documind/core/document_processor.py
+src/documind/ui/__init__.py
+src/documind/ui/main_window.py
+src/documind/ui/theme_manager.py

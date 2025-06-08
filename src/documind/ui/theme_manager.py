@@ -2,8 +2,9 @@ import pathlib
 from PyQt6.QtGui import QIcon
 from PyQt6.QtCore import QSettings
 
-# Define a robust path to the assets directory
-ASSETS_PATH = pathlib.Path(__file__).parent / "assets"
+# --- ROBUST ASSET PATH ---
+# Go up two levels from this file (ui -> documind) to find the 'assets' folder.
+ASSETS_PATH = pathlib.Path(__file__).parent.parent / "assets"
 
 class ThemeManager:
     """Manages the application's visual themes and settings."""
@@ -33,7 +34,8 @@ class ThemeManager:
             }
         }
         
-        self.current_theme = self.settings.value("theme", "dark") # Default to dark
+        # Default to dark theme if no setting is found
+        self.current_theme = self.settings.value("theme", "dark")
 
     def apply_theme(self, theme_name):
         """Applies a specified theme to the application."""
@@ -50,9 +52,9 @@ class ThemeManager:
         try:
             with open(stylesheet_path, "r") as f:
                 self.app.setStyleSheet(f.read())
-            print(f"Applied {theme_name} theme.")
+            print(f"Successfully applied {theme_name} theme.")
         except FileNotFoundError:
-            print(f"Stylesheet not found for {theme_name} theme.")
+            print(f"Stylesheet not found for {theme_name} theme at {stylesheet_path}")
             
     def get_current_theme_icons(self):
         """Returns the icon set for the current theme."""
@@ -62,8 +64,9 @@ class ThemeManager:
         """Gets a specific QIcon for the current theme."""
         icons = self.get_current_theme_icons()
         path = icons.get(icon_name)
-        if path:
+        if path and path.exists():
             return QIcon(str(path))
+        print(f"Warning: Icon '{icon_name}' not found at path '{path}'")
         return QIcon() # Return an empty icon if not found
 
     def toggle_theme(self):
