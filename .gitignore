@@ -1,9 +1,12 @@
-# Virtual Environment
+# Python Virtual Environment
 venv/
 
-# Python cache
+# Python cache files
 __pycache__/
 *.pyc
 
-# OS-specific files
+# macOS specific files
 .DS_Store
+
+# Our future persistent database folder
+documind_db/
