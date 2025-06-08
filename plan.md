@@ -15,15 +15,28 @@ The goal of this phase is to build the core functionality: select a folder, proc
 We'll stick with a Python-centric stack, as it's the undisputed leader in the ML space and has robust libraries for everything we need.
 
 * **Core Language:** **Python 3.10+**
+  * **What It Is:** A versatile, high-level programming language.
+  * **Its Purpose:** Python is the standard in the AI/ML world because of its simplicity and, most importantly, its vast collection of pre-built libraries that handle the complex math and algorithms needed for AI tasks.
 * **Desktop GUI:** **PyQt6** or **PySide6**
   * **Why:** These are Python bindings for the Qt framework, the industry standard for building high-quality, native-looking cross-platform desktop applications. It's powerful and well-documented.
+  * **What It Is:** A library that allows you to build desktop applications with Python that look and feel native on Windows, Mac, and Linux.
+  * **Its Purpose:** This will be used to create the user interface of your application—the windows, buttons, text boxes, and other visual elements your users will interact with.
 * **PDF Parsing:** **PyMuPDF (Fitz)**
   * **Why:** It is exceptionally fast and accurate for text extraction. Crucially, it can also extract images and metadata, which will be vital for your future goals.
+  * **What It Is:** A high-performance Python library for accessing and extracting data from documents like PDFs.
+  * **Its Purpose:** This tool does the "heavy lifting" of opening your PDF files and accurately pulling out all the raw text, page by page. It's the first step in getting your documents' contents into a format the AI can work with.
+* **Local LLM Server: Ollama**
+  * **What It Is:** Ollama is a user-friendly tool that downloads and runs powerful open-source Large Language Models (LLMs) on your personal computer. It wraps the complex model into a simple, local web server.
+    **Its Purpose:** It allows your Python application to "talk" to a powerful reasoning engine (like Llama 3) without needing an internet connection or paying for an API. Your app will send it a question and the relevant text, and Ollama will send back a human-like answer.
 * **Text Embeddings:** **Sentence-Transformers**
   * **Why:** This library provides an easy way to use state-of-the-art models that convert text chunks into numerical vectors (embeddings). These embeddings capture the semantic meaning of the text.
+  * **What It Is:** An "embedding model" is a specialized AI that reads a piece of text and converts it into a list of numbers, called a "vector embedding." The key idea is that semantically similar pieces of text will be converted into mathematically similar lists of numbers. Sentence Transformers are a class of models that are very good at this.
+  * **Its Purpose:** This is how your application understands the meaning and context of words, not just the words themselves. We use it to turn both your document chunks and the user's question into these numerical representations so we can find the most relevant information in your files, even if the wording isn't an exact match.
   * **Starting Model:** `all-MiniLM-L6-v2` - It's small, fast, and provides excellent performance for its size, making it ideal for running locally.
 * **Vector Database:** **ChromaDB**
   * **Why:** Vector databases are specialized for storing and searching through embeddings efficiently. Chroma is open-source, runs entirely on your local machine, is easy to integrate with Python, and is designed specifically for RAG applications.
+  * **What It Is:** A database that is specifically designed to store and efficiently search through huge numbers of vector embeddings (the lists of numbers from the embedding model).
+  * **Its Purpose:** After converting all your document chunks into embeddings, you need a place to store them. When a user asks a question, the vector database allows you to perform an incredibly fast "similarity search" to find the text chunks whose embeddings are mathematically closest to your question's embedding, thus finding the most relevant context.
 * **Local LLM Server:** **Ollama**
   * **Why:** Ollama is the simplest way to download, manage, and run powerful open-source LLMs (like Llama 3) locally. It exposes the model via a simple API on your machine, which your Python application can easily call.
 * **The LLM (Language Model):** **Llama 3 8B Instruct** or **Phi-3 Mini**
