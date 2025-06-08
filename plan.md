@@ -1,100 +1,95 @@
-# Plan
+# Plan of Action
 
-## DocuMind: The Complete Project Plan (Revised & Consolidated)
+## DocuMind: The Complete Project Plan (Direct File & Drag-and-Drop Edition)
 
 ### **1. Vision & Core Architecture**
 
-**Vision:** To create a private, cross-platform desktop application that allows users to have intelligent conversations with their local documents. The application must be **stateful**, remembering all processed work between sessions, and **scalable**, capable of handling a large number of documents without performance degradation or crashes.
+**Vision:** To create a private, cross-platform desktop application that allows users to have intelligent conversations with their documents. The application will be **stateful** and **scalable**, allowing users to build a persistent library of documents by **adding files directly** via a file picker or by **dragging and dropping them** into the application.
 
-**Core Architecture: "Storage-First" Retrieval-Augmented Generation (RAG)**
-This architecture is designed for persistence and robustness.
+**Core Architecture: "Storage-First" & "Design-First"**
+The architecture is designed for persistence, scalability, and a superior user experience.
 
-1. **Persistent Vector Database:** All document embeddings (the AI's "memory" of the text) will be stored permanently on the user's disk. This eliminates the need to re-process files every time the app starts and allows the system to scale beyond the limits of system RAM.
-2. **Stateful Processing:** The application will keep a record of which files have already been processed. When scanning a folder, it will intelligently ignore unchanged files and only process new or modified ones.
-3. **Decoupled & Threaded Logic:** The application will be split into three distinct layers (UI, Document Processing, AI Core). All heavy lifting will be performed in background threads, ensuring the user interface remains responsive at all times.
+1. **Persistent Vector Database:** All document embeddings—the AI's "memory" of the text—will be stored permanently on the user's disk. This allows the application to remember documents between sessions.
+2. **Stateful Processing with File Checksums:** The application will maintain a record of every processed file. When files are added, it will intelligently ignore duplicates and only process new or modified documents, saving significant time and computational resources.
+3. **Decoupled & Threaded Logic:** A clean separation between the UI, document processing, and AI core layers ensures maintainability. All intensive work is performed in background threads, keeping the UI fast and responsive.
 
----
+***
 
 ### **2. The Definitive Tech Stack**
 
+The technology stack remains the same, as PyQt6 has excellent built-in support for all our UI requirements.
+
 * **Core Language**: **Python 3.10+**
 * **Desktop GUI**: **PyQt6**
-  * **Purpose**: To build a professional, responsive, and native-looking user interface for Windows and macOS.
+* **UI Assets**: **Feather Icons** (or a similar open-source SVG icon set).
 * **PDF Parsing**: **PyMuPDF**
-  * **Purpose**: For high-speed, accurate text extraction from PDF documents.
-* **Text Embeddings**: **Sentence-Transformers** (`all-MiniLM-L6-v2` model)
-  * **Purpose**: To convert text chunks into meaningful numerical vectors. The library automatically caches the model to disk, making it efficient.
 * **Vector Database**: **ChromaDB (in Persistent Mode)**
-  * **Purpose**: To store and efficiently query the text embeddings. By running in persistent mode, it saves all data to a local folder, making our application stateful.
+* **Text Embeddings**: **Sentence-Transformers** (`all-MiniLM-L6-v2` model)
 * **Local LLM Runner (Development)**: **Ollama**
-  * **Purpose**: To rapidly test and iterate with different local language models (like Llama 3 or Phi-3) via a simple API during development.
 * **Local LLM Runner (Production/Distribution)**: **`llama-cpp-python`**
-  * **Purpose**: To embed the language model's reasoning engine directly into the final application. This removes the Ollama dependency and is essential for creating a standalone, distributable product.
 * **Packaging Tool**: **PyInstaller**
-  * **Purpose**: To bundle the entire Python application, including its dependencies, into a single, double-clickable executable for non-technical users.
 
----
+***
 
 ### **3. Comprehensive Implementation Roadmap**
 
-This is the step-by-step guide to building DocuMind from scratch.
+This is the step-by-step guide to building the complete application with the new file handling requirements.
 
-#### **Phase 1: Application Foundation & UI**
+#### **Phase 1: A Modern UI Foundation with Direct File Input**
 
-* **Step 1: Project Setup**
-  * Create the `DocuMind` project directory and a `documind` source sub-directory.
-  * Initialize a Git repository.
-  * Create and activate a Python virtual environment (`venv`).
-  * Create a `.gitignore` file to exclude the `venv` folder, cache files, and the future database folder.
-* **Step 2: UI Scaffolding**
+* **Step 1: Project Setup & Asset Gathering**
+  * Create the project structure (`DocuMind/documind`), Git repository, and Python virtual environment.
+  * Create an `assets` folder and add a `style.qss` file and selected `.svg` icons.
+  * Create a `.gitignore` file.
+
+* **Step 2: Build the Advanced UI Layout for Drag-and-Drop**
   * Install PyQt6: `pip install PyQt6`.
-  * Create the main application window (`main.py`) with all necessary UI widgets: folder selection button, file list, progress/log area, question input, and an "Ask" button.
-  * Use PyQt layout managers (`QVBoxLayout`, `QHBoxLayout`) to ensure the UI is responsive.
+  * In `main.py`, build the two-pane `QSplitter` layout.
+  * The "Select Folder" button will be renamed to **Add Documents**.
+  * **Enable Drag-and-Drop**: In the main window's `__init__` method, add `self.setAcceptDrops(True)`. This signals that the window is a valid drop target.
+
+* **Step 3: Implement File Handling Events**
+  * **File Picker Logic**: Connect the "Add Documents..." button to a slot that opens a `QFileDialog`. Use `getOpenFileNames` to allow the user to select one or more PDF files.
+  * **Drag-and-Drop Logic**: Override two methods in your main window class:
+        1. `dragEnterEvent(event)`: This method checks if the data being dragged over the window contains file paths (`event.mimeData().hasUrls()`). If it does, it accepts the event, showing the user a visual cue (e.g., a plus icon).
+        2. `dropEvent(event)`: This method is triggered when the user releases the mouse. It extracts the list of file paths from the event's MIME data.
+  * Both the file picker and the drop event will ultimately produce a list of file paths. This list will be the trigger for the indexing pipeline.
+
+* **Step 4: Apply Styling and Icons**
+  * Load the `style.qss` file to apply a modern look and feel.
+  * Use `QIcon` to apply icons to buttons.
 
 #### **Phase 2: The Persistent & Scalable Backend**
 
-* **Step 3: Architect the AI Core**
-  * Create a new module: `documind/ai_core.py`.
-  * Inside this module, initialize ChromaDB in **persistent mode** (`chromadb.PersistentClient(path="./documind_db")`).
-  * Load the `SentenceTransformer` embedding model in this module. This ensures it's loaded only once.
-* **Step 4: Implement the Document Processing Logic**
-  * Create a new module: `documind/document_processor.py`.
-  * Implement a function to **extract text** from a PDF using PyMuPDF.
-  * Implement a function to **chunk the text** into meaningful paragraphs.
-* **Step 5: Build the Robust Indexing Pipeline**
-  * In `ai_core.py`, create an `embed_and_store` function. This function **must** implement **batch processing** (e.g., in batches of 32) to handle large documents without crashing. It will take text chunks and save their embeddings and metadata to the persistent ChromaDB.
-  * In `document_processor.py`, create a high-level `process_document` function that orchestrates the process: it calls the text extractor and chunker, then passes the results to `ai_core.embed_and_store`.
-* **Step 6: Implement Threaded UI Integration**
-  * In `main.py`, create a `Worker` class that runs on a `QThread`.
-  * When the "Select Folder" button is clicked, this `Worker` will be started.
-  * The `Worker`'s job is to find all PDFs and, for each one, call the `process_document` function.
-  * The `Worker` will use PyQt signals (`pyqtSignal`) to send real-time progress updates back to the UI (e.g., "Processing file X...", "Finished file Y"). This keeps the application from freezing.
+* **Step 5: Architect the AI Core and Checksum Store**
+  * Create `ai_core.py` and initialize the persistent ChromaDB and the SentenceTransformer model.
+  * Implement a simple checksum manager (e.g., using a JSON file) to store the file paths and content hashes of processed documents.
+
+* **Step 6: Build the Robust Indexing Pipeline**
+  * In `main.py`, create a `QThread` worker. This worker will be started whenever a list of file paths is received (either from the file picker or a drop event).
+  * The worker will receive the list of file paths.
+  * For each file path in the list, the worker will:
+        1. First, check if the file has already been processed and is unchanged by comparing its hash against the checksum store. If so, it will be skipped.
+        2. If the file is new or modified, it will call the functions in `document_processor.py` to extract text and create chunks.
+        3. The chunks are then passed to the `ai_core.py` module for batch embedding and storage in ChromaDB.
+        4. Finally, the file's hash is added/updated in the checksum store.
+  * The worker will use signals to update a `QProgressBar` in the UI, showing the progress of the batch of files being added.
 
 #### **Phase 3: Querying and Answering**
 
-* **Step 7: Implement the Query Logic**
-  * In `ai_core.py`, create a `query_knowledge_base` function.
-  * This function will take a user's question (string), embed it using the same SentenceTransformer model, and query the persistent ChromaDB to retrieve the most relevant text chunks and their source metadata.
-* **Step 8: Implement Answer Generation**
-  * In `ai_core.py`, create a `generate_answer` function.
-  * This function will take the user's question and the retrieved context chunks.
-  * It will construct a detailed prompt, instructing the LLM to answer based *only* on the provided context.
-  * During development, this function will make an API call to the local Ollama server.
-* **Step 9: Connect the "Ask" Button**
-  * In `main.py`, connect the "Ask" button to a new slot method.
-  * This method will launch a **new `QThread` and `Worker`** to handle the query process, preventing the UI from freezing while waiting for the LLM to respond.
-  * The worker will call `query_knowledge_base` and then `generate_answer`.
-  * It will use signals to send the final answer and citations back to the UI to be displayed.
+* **Step 7: Implement Query and Answer Logic**
+  * This phase remains the same. The functions in `ai_core.py` will embed the user's question, query the entire persistent database (which now contains the user-curated library of documents), and generate an answer with the LLM.
+
+* **Step 8: Implement Responsive Querying in the UI**
+  * This also remains the same. The "Ask" button will trigger a background worker, and the UI will show a loading indicator while waiting for a response to ensure the application never freezes.
 
 #### **Phase 4: Finalization and Distribution**
 
-* **Step 10: Integrate Production LLM Runner**
-  * Modify `ai_core.py`. Add logic to use `llama-cpp-python` instead of making an API call to Ollama. This will involve loading a `.gguf` model file directly from disk.
-* **Step 11: Implement One-Time Asset Download**
-  * In `main.py`, on the first-ever launch, the application should check for the required `.gguf` LLM model file (which is several gigabytes).
-  * If the file is missing, the app should show a "First-Time Setup" dialog and programmatically download the model from a source like Hugging Face, displaying a progress bar to the user.
-* **Step 12: Package the Application**
-  * Use **PyInstaller** to bundle the entire project into a single executable file.
-  * Configure the PyInstaller script to correctly include any necessary assets.
-* **Step 13: Test**
-  * Perform thorough testing of the final executable on clean Windows and macOS machines to ensure the entire user journey—from first-time model download to document processing and querying—is smooth and error-free.
+* **Step 9: Integrate Production LLM Runner**
+  * Modify `ai_core.py` to use `llama-cpp-python` and load a local `.gguf` model file.
+* **Step 10: Implement One-Time Asset Downloader**
+  * On the app's first launch, check for the required LLM model file and download it with a progress bar if it's missing.
+* **Step 11: Package the Application**
+  * Use **PyInstaller** to create the final, standalone executable.
+* **Step 12: Test**
+  * Thoroughly test the entire workflow on clean machines, paying special attention to the file picker, drag-and-drop functionality, and the stateful nature of the document library.
