@@ -1,40 +1,141 @@
 import sys
 import pathlib
-from PyQt6.QtCore import Qt, QSize
+import traceback
+from PyQt6.QtCore import Qt, QSize, QObject, QThread, pyqtSignal
 from PyQt6.QtGui import QIcon
 from PyQt6.QtWidgets import (
     QApplication, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout,
     QPushButton, QListWidget, QLineEdit, QTextEdit, QLabel, QSplitter,
-    QFileDialog
+    QFileDialog, QProgressBar, QMessageBox
 )
-# Note the updated import path
 from documind.ui.theme_manager import ThemeManager
+from documind.core.ai_core import AICore
+from documind.core.document_processor import process_document
+
+class ProcessingWorker(QObject):
+    finished = pyqtSignal()
+    progress = pyqtSignal(int, str)
+    error = pyqtSignal(str)
+
+    def __init__(self, file_paths: list[str], ai_core: AICore):
+        super().__init__()
+        self.file_paths = file_paths
+        self.ai_core = ai_core
+        self.is_running = True
+
+    def run(self):
+        print("[LOG] Worker: Thread started and run() method executing.")
+        try:
+            total_files = len(self.file_paths)
+            for i, path_str in enumerate(self.file_paths):
+                if not self.is_running:
+                    break
+                pdf_path = pathlib.Path(path_str)
+                print(f"[LOG] Worker: Preparing to process file: {pdf_path.name}")
+                self.progress.emit(int((i / total_files) * 100), f"Processing: {pdf_path.name}")
+                process_document(pdf_path, self.ai_core)
+                print(f"[LOG] Worker: Finished processing file: {pdf_path.name}")
+            
+            if self.is_running:
+                self.progress.emit(100, "Processing complete.")
+        except Exception as e:
+            error_traceback = traceback.format_exc()
+            self.error.emit(f"An error occurred in the processing thread:\n\n{error_traceback}")
+        finally:
+            print("[LOG] Worker: run() method finished.")
+            self.finished.emit()
+
+    def stop(self):
+        self.is_running = False
+
 
 class DocuMindApp(QMainWindow):
-    def __init__(self, theme_manager):
+    def __init__(self, theme_manager: ThemeManager, ai_core: AICore):
+        # ... (This __init__ method and all other methods remain the same as the last version) ...
+        # ... The only change is in handle_files below ...
         super().__init__()
         self.theme_manager = theme_manager
-        
+        self.ai_core = ai_core
+        self.thread = None
+        self.worker = None
         self.setWindowTitle("DocuMind")
         self.setGeometry(100, 100, 1200, 800)
         self.setAcceptDrops(True)
-        
-        # --- THIS IS THE CORRECTED LINE ---
-        # Since this file is in 'ui', we go up two levels (.parent.parent) 
-        # to reach the 'documind' directory where 'assets' is located.
         self.assets_path = pathlib.Path(__file__).parent.parent / "assets"
-        
         self.splitter = QSplitter(Qt.Orientation.Horizontal)
         self.setCentralWidget(self.splitter)
-
         self.setup_left_pane()
         self.setup_right_pane()
+        self.setup_status_bar()
         self.splitter.setSizes([300, 900])
         self.update_icons()
-    
-    # ... (all other methods like setup_left_pane, setup_right_pane, update_icons, etc., remain exactly the same as the last version) ...
-    # The only change needed inside this class is the self.assets_path line above.
-    # For completeness, here are the rest of the methods again without changes.
+
+    def handle_files(self, file_paths: list[str]):
+        print("[LOG] UI: handle_files triggered.")
+        pdf_paths = [path for path in file_paths if path.lower().endswith('.pdf')]
+        if not pdf_paths:
+            print("[LOG] UI: No PDF files found in selection.")
+            return
+
+        self.add_files_button.setEnabled(False)
+        self.progress_bar.setValue(0)
+        self.progress_bar.setVisible(True)
+
+        self.thread = QThread()
+        self.worker = ProcessingWorker(pdf_paths, self.ai_core)
+        self.worker.moveToThread(self.thread)
+
+        self.thread.started.connect(self.worker.run)
+        self.worker.finished.connect(self.on_processing_finished)
+        self.worker.progress.connect(self.update_progress)
+        self.worker.error.connect(self.on_processing_error)
+
+        for path in pdf_paths:
+            self.file_list_widget.addItem(pathlib.Path(path).name)
+        
+        print("[LOG] UI: Starting worker thread...")
+        self.thread.start()
+
+    # --- All other methods remain unchanged from the previous version ---
+    def setup_status_bar(self):
+        self.status_bar = self.statusBar()
+        self.progress_bar = QProgressBar()
+        self.progress_bar.setVisible(False)
+        self.status_bar.addPermanentWidget(self.progress_bar)
+
+    def on_processing_finished(self):
+        print("[LOG] UI: on_processing_finished triggered.")
+        self.statusBar().showMessage("Ready.", 5000)
+        self.add_files_button.setEnabled(True)
+        self.progress_bar.setVisible(False)
+        if self.thread:
+            self.thread.quit()
+            self.thread.wait()
+            self.thread = None
+            self.worker = None
+
+    def on_processing_error(self, error_message):
+        print(f"[LOG] UI: on_processing_error triggered with message: {error_message}")
+        self.statusBar().showMessage("An error occurred during processing.")
+        error_dialog = QMessageBox(self)
+        error_dialog.setIcon(QMessageBox.Icon.Critical)
+        error_dialog.setText("Processing Error")
+        error_dialog.setInformativeText("A critical error occurred while processing the documents.")
+        error_dialog.setDetailedText(error_message)
+        error_dialog.setStandardButtons(QMessageBox.StandardButton.Ok)
+        error_dialog.exec()
+
+    def update_progress(self, value, text):
+        self.progress_bar.setValue(value)
+        self.statusBar().showMessage(text)
+
+    def closeEvent(self, event):
+        if self.worker:
+            self.worker.stop()
+        if self.thread:
+            self.thread.quit()
+            self.thread.wait()
+        event.accept()
 
     def setup_left_pane(self):
         left_pane = QWidget()
@@ -69,7 +170,7 @@ class DocuMindApp(QMainWindow):
         question_layout.addWidget(self.ask_button)
         right_layout.addLayout(question_layout)
         self.splitter.addWidget(right_pane)
-
+        
     def update_icons(self):
         self.add_files_button.setIcon(self.theme_manager.get_icon("add"))
         self.ask_button.setIcon(self.theme_manager.get_icon("send"))
@@ -98,9 +199,3 @@ class DocuMindApp(QMainWindow):
             self.handle_files(file_paths)
         else:
             event.ignore()
-
-    def handle_files(self, file_paths: list[str]):
-        pdf_paths = [path for path in file_paths if path.lower().endswith('.pdf')]
-        if pdf_paths:
-            for path in pdf_paths:
-                self.file_list_widget.addItem(pathlib.Path(path).name)
