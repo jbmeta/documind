@@ -1,41 +1,70 @@
 import pathlib
+import numpy as np
+import faiss
 from sentence_transformers import SentenceTransformer
-import chromadb
 
 # --- Constants ---
-# Use a folder in the project directory for the persistent database
-DB_PATH = "./documind_db"
-# This is the embedding model we'll use
+INDEX_FILE_PATH = "./documind_index.faiss" # We'll save our index to a single file
 EMBED_MODEL = 'all-MiniLM-L6-v2'
-# This is the collection name in ChromaDB
-COLLECTION_NAME = "documind_collection"
+# The embedding model produces vectors of dimension 384
+VECTOR_DIMENSION = 384
 
 class AICore:
-    """Manages all AI-related operations, including models and the vector database."""
-
+    """Manages AI operations using FAISS for vector storage."""
     def __init__(self):
-        print("Initializing AI Core...")
+        print("[LOG] AI Core: Initializing...")
         self.embedding_model = None
-        self.collection = None
+        self.index = None # This is our FAISS index
+        self.documents = [] # A simple list to store the text chunks and metadata
 
         try:
-            # 1. Initialize Sentence Transformer Model
-            # This model is automatically cached to disk by the library in your user home directory.
+            print("[LOG] AI Core: Loading SentenceTransformer model...")
             self.embedding_model = SentenceTransformer(EMBED_MODEL)
+            print("[LOG] AI Core: Model loaded successfully.")
 
-            # 2. Initialize Persistent ChromaDB Client
-            # This will create the 'documind_db' folder if it doesn't exist
-            # and load the database from there if it does.
-            client = chromadb.PersistentClient(path=DB_PATH)
-
-            # 3. Get or create the collection
-            self.collection = client.get_or_create_collection(name=COLLECTION_NAME)
+            # Load the FAISS index from disk if it exists
+            index_path = pathlib.Path(INDEX_FILE_PATH)
+            if index_path.exists():
+                print(f"[LOG] AI Core: Loading existing FAISS index from {INDEX_FILE_PATH}...")
+                self.index = faiss.read_index(str(index_path))
+                # NOTE: For a complete solution, you would also save and load the `self.documents` list.
+                # For now, we will rebuild it each time, but the expensive embeddings are saved.
+                print(f"[LOG] AI Core: FAISS index loaded. Contains {self.index.ntotal} vectors.")
+            else:
+                print("[LOG] AI Core: No existing index found. Creating a new one.")
+                # Create a new, empty index. IndexFlatL2 is a standard, exact-search index.
+                self.index = faiss.IndexFlatL2(VECTOR_DIMENSION)
             
-            print(f"AI Core initialized successfully. Using database at: {DB_PATH}")
-            print(f"Existing documents in collection: {self.collection.count()}")
-
+            print("[LOG] AI Core: Initialization complete.")
         except Exception as e:
-            print(f"FATAL: Failed to initialize AI Core: {e}")
-            # In a real app, you might want to show a popup error message to the user.
+            print(f"[FATAL LOG] AI Core: Failed to initialize: {e}")
 
-    # We will add functions like embed_and_store() and query() here in the next steps.
+    def embed_and_store(self, chunks: list[str], metadata: list[dict], source_path: pathlib.Path):
+        """Embeds text chunks and adds them to the in-memory FAISS index."""
+        if not self.embedding_model or self.index is None:
+            print("[LOG] AI Core: Not initialized. Cannot perform embedding.")
+            return
+
+        print(f"[LOG] AI Core: Encoding {len(chunks)} chunks from {source_path.name}...")
+        # The .encode() method returns a numpy array directly, which is what FAISS needs.
+        embeddings = self.embedding_model.encode(chunks)
+        print("[LOG] AI Core: Encoding complete.")
+
+        # --- This is the new, robust way to add to the index ---
+        print("[LOG] AI Core: Starting to add vectors to FAISS index...")
+        self.index.add(embeddings.astype('float32')) # FAISS works best with float32
+        print("[LOG] AI Core: Finished adding vectors to FAISS index.")
+        
+        # Store the corresponding text and metadata in our own list.
+        # The vector at index `i` in FAISS corresponds to the document at index `i`.
+        for i, chunk in enumerate(chunks):
+            doc_info = {
+                'document': chunk,
+                'metadata': metadata[i]
+            }
+            self.documents.append(doc_info)
+
+        # Save the updated index to disk
+        print(f"[LOG] AI Core: Saving updated FAISS index to {INDEX_FILE_PATH}...")
+        faiss.write_index(self.index, str(pathlib.Path(INDEX_FILE_PATH).absolute()))
+        print("[LOG] AI Core: Index saved successfully.")

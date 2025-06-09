@@ -8,5 +8,4 @@ __pycache__/
 # macOS specific files
 .DS_Store
 
-# Our future persistent database folder
-documind_db/
+*.faiss
