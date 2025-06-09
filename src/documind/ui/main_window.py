@@ -12,11 +12,11 @@ from documind.ui.theme_manager import ThemeManager
 from documind.core.ai_core import AICore
 from documind.core.document_processor import process_document
 
-# Worker class for background processing
 class ProcessingWorker(QObject):
     finished = pyqtSignal()
     progress = pyqtSignal(int, str)
     error = pyqtSignal(str)
+    document_processed = pyqtSignal(str) 
 
     def __init__(self, file_paths: list[str], ai_core: AICore):
         super().__init__()
@@ -32,8 +32,12 @@ class ProcessingWorker(QObject):
                     break
                 pdf_path = pathlib.Path(path_str)
                 self.progress.emit(int((i / total_files) * 100), f"Processing: {pdf_path.name}")
-                process_document(pdf_path, self.ai_core)
-            
+                if not self.ai_core.has_document(pdf_path):
+                    process_document(pdf_path, self.ai_core)
+                    self.document_processed.emit(pdf_path.name)
+                else:
+                    self.progress.emit(int((i / total_files) * 100), f"Skipping existing file: {pdf_path.name}")
+
             if self.is_running:
                 self.progress.emit(100, "Processing complete.")
         except Exception as e:
@@ -45,8 +49,6 @@ class ProcessingWorker(QObject):
     def stop(self):
         self.is_running = False
 
-
-# Main Window Class
 class DocuMindApp(QMainWindow):
     def __init__(self, theme_manager: ThemeManager, ai_core: AICore):
         super().__init__()
@@ -54,22 +56,19 @@ class DocuMindApp(QMainWindow):
         self.ai_core = ai_core
         self.thread = None
         self.worker = None
-
         self.setWindowTitle("DocuMind")
         self.setGeometry(100, 100, 1200, 800)
         self.setAcceptDrops(True)
-        
         self.assets_path = pathlib.Path(__file__).parent.parent / "assets"
-        
         self.splitter = QSplitter(Qt.Orientation.Horizontal)
         self.setCentralWidget(self.splitter)
-
         self.setup_left_pane()
         self.setup_right_pane()
         self.setup_status_bar()
         self.splitter.setSizes([300, 900])
         self.update_icons()
-    
+        self.populate_document_list_from_library()
+
     def setup_status_bar(self):
         self.status_bar = self.statusBar()
         self.progress_bar = QProgressBar()
@@ -109,46 +108,18 @@ class DocuMindApp(QMainWindow):
         question_layout.addWidget(self.ask_button)
         right_layout.addLayout(question_layout)
         self.splitter.addWidget(right_pane)
+
+    def populate_document_list_from_library(self):
+        self.file_list_widget.clear()
+        doc_names = self.ai_core.get_document_list()
+        self.file_list_widget.addItems(doc_names)
         
-    def update_icons(self):
-        self.add_files_button.setIcon(self.theme_manager.get_icon("add"))
-        self.ask_button.setIcon(self.theme_manager.get_icon("send"))
-        self.theme_toggle_button.setIcon(self.theme_manager.get_icon("toggle"))
-
-    def toggle_theme(self):
-        self.theme_manager.toggle_theme()
-        self.update_icons()
-        
-    # --- START OF MISSING METHODS ---
-
-    def open_file_dialog(self):
-        """Opens a file dialog to select one or more PDF files."""
-        file_paths, _ = QFileDialog.getOpenFileNames(
-            self, "Select PDF Files", "", "PDF Files (*.pdf)"
-        )
-        if file_paths:
-            self.handle_files(file_paths)
-
-    def dragEnterEvent(self, event):
-        """Handles the event when a file is dragged over the window."""
-        if event.mimeData().hasUrls():
-            event.acceptProposedAction()
-        else:
-            event.ignore()
-
-    def dropEvent(self, event):
-        """Handles the event when a file is dropped onto the window."""
-        if event.mimeData().hasUrls():
-            file_paths = [url.toLocalFile() for url in event.mimeData().urls()]
-            self.handle_files(file_paths)
-        else:
-            event.ignore()
+    def add_document_to_list(self, doc_name: str):
+        self.file_list_widget.addItem(doc_name)
 
     def handle_files(self, file_paths: list[str]):
-        """Starts the background processing for a list of files."""
         pdf_paths = [path for path in file_paths if path.lower().endswith('.pdf')]
-        if not pdf_paths:
-            return
+        if not pdf_paths: return
 
         self.add_files_button.setEnabled(False)
         self.progress_bar.setValue(0)
@@ -160,21 +131,20 @@ class DocuMindApp(QMainWindow):
 
         self.thread.started.connect(self.worker.run)
         self.worker.finished.connect(self.on_processing_finished)
-        self.worker.progress.connect(self.update_progress)
+        self.worker.progress.connect(self.update_progress) # This line caused the crash
         self.worker.error.connect(self.on_processing_error)
-
-        for path in pdf_paths:
-            self.file_list_widget.addItem(pathlib.Path(path).name)
+        self.worker.document_processed.connect(self.add_document_to_list)
 
         self.thread.start()
 
-    def update_progress(self, value, text):
-        """Updates the progress bar and status text."""
+    # --- THIS IS THE MISSING METHOD THAT HAS BEEN RESTORED ---
+    def update_progress(self, value: int, text: str):
+        """Updates the progress bar and status text. This is a slot."""
         self.progress_bar.setValue(value)
         self.statusBar().showMessage(text)
+    # --- END OF RESTORED METHOD ---
 
     def on_processing_finished(self):
-        """Cleans up the thread and re-enables UI elements."""
         self.statusBar().showMessage("Ready.", 5000)
         self.add_files_button.setEnabled(True)
         self.progress_bar.setVisible(False)
@@ -185,7 +155,6 @@ class DocuMindApp(QMainWindow):
             self.worker = None
 
     def on_processing_error(self, error_message):
-        """Displays an error message dialog to the user."""
         self.statusBar().showMessage("An error occurred during processing.")
         error_dialog = QMessageBox(self)
         error_dialog.setIcon(QMessageBox.Icon.Critical)
@@ -196,12 +165,38 @@ class DocuMindApp(QMainWindow):
         error_dialog.exec()
 
     def closeEvent(self, event):
-        """Ensures the worker thread is stopped when closing the app."""
         if self.worker:
             self.worker.stop()
         if self.thread:
             self.thread.quit()
             self.thread.wait()
         event.accept()
-        
-    # --- END OF MISSING METHODS ---
+
+    def update_icons(self):
+        self.add_files_button.setIcon(self.theme_manager.get_icon("add"))
+        self.ask_button.setIcon(self.theme_manager.get_icon("send"))
+        self.theme_toggle_button.setIcon(self.theme_manager.get_icon("toggle"))
+
+    def toggle_theme(self):
+        self.theme_manager.toggle_theme()
+        self.update_icons()
+
+    def open_file_dialog(self):
+        file_paths, _ = QFileDialog.getOpenFileNames(
+            self, "Select PDF Files", "", "PDF Files (*.pdf)"
+        )
+        if file_paths:
+            self.handle_files(file_paths)
+
+    def dragEnterEvent(self, event):
+        if event.mimeData().hasUrls():
+            event.acceptProposedAction()
+        else:
+            event.ignore()
+
+    def dropEvent(self, event):
+        if event.mimeData().hasUrls():
+            file_paths = [url.toLocalFile() for url in event.mimeData().urls()]
+            self.handle_files(file_paths)
+        else:
+            event.ignore()
