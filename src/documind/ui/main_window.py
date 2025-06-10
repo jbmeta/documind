@@ -12,6 +12,7 @@ from documind.ui.theme_manager import ThemeManager
 from documind.core.ai_core import AICore
 from documind.core.document_processor import process_document
 
+# Worker class for background processing
 class ProcessingWorker(QObject):
     finished = pyqtSignal()
     progress = pyqtSignal(int, str)
@@ -49,31 +50,33 @@ class ProcessingWorker(QObject):
     def stop(self):
         self.is_running = False
 
+# Main Window Class
 class DocuMindApp(QMainWindow):
     def __init__(self, theme_manager: ThemeManager, ai_core: AICore):
         super().__init__()
+        
+        self.assets_path = pathlib.Path(__file__).parent.parent / "assets"
         self.theme_manager = theme_manager
         self.ai_core = ai_core
         self.thread = None
         self.worker = None
+
         self.setWindowTitle("DocuMind")
+        
+        self.setWindowIcon(QIcon(str(self.assets_path / "app_icon.png")))
+
         self.setGeometry(100, 100, 1200, 800)
         self.setAcceptDrops(True)
-        self.assets_path = pathlib.Path(__file__).parent.parent / "assets"
+        
         self.splitter = QSplitter(Qt.Orientation.Horizontal)
         self.setCentralWidget(self.splitter)
+
         self.setup_left_pane()
         self.setup_right_pane()
         self.setup_status_bar()
         self.splitter.setSizes([300, 900])
         self.update_icons()
         self.populate_document_list_from_library()
-
-    def setup_status_bar(self):
-        self.status_bar = self.statusBar()
-        self.progress_bar = QProgressBar()
-        self.progress_bar.setVisible(False)
-        self.status_bar.addPermanentWidget(self.progress_bar)
 
     def setup_left_pane(self):
         left_pane = QWidget()
@@ -108,6 +111,12 @@ class DocuMindApp(QMainWindow):
         question_layout.addWidget(self.ask_button)
         right_layout.addLayout(question_layout)
         self.splitter.addWidget(right_pane)
+        
+    def setup_status_bar(self):
+        self.status_bar = self.statusBar()
+        self.progress_bar = QProgressBar()
+        self.progress_bar.setVisible(False)
+        self.status_bar.addPermanentWidget(self.progress_bar)
 
     def populate_document_list_from_library(self):
         self.file_list_widget.clear()
@@ -131,18 +140,15 @@ class DocuMindApp(QMainWindow):
 
         self.thread.started.connect(self.worker.run)
         self.worker.finished.connect(self.on_processing_finished)
-        self.worker.progress.connect(self.update_progress) # This line caused the crash
+        self.worker.progress.connect(self.update_progress)
         self.worker.error.connect(self.on_processing_error)
         self.worker.document_processed.connect(self.add_document_to_list)
 
         self.thread.start()
 
-    # --- THIS IS THE MISSING METHOD THAT HAS BEEN RESTORED ---
     def update_progress(self, value: int, text: str):
-        """Updates the progress bar and status text. This is a slot."""
         self.progress_bar.setValue(value)
         self.statusBar().showMessage(text)
-    # --- END OF RESTORED METHOD ---
 
     def on_processing_finished(self):
         self.statusBar().showMessage("Ready.", 5000)

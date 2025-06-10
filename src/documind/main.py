@@ -13,7 +13,7 @@ def run():
     
     # --- Splash Screen Setup ---
     assets_path = pathlib.Path(__file__).parent / "assets"
-    splash = SplashScreen(assets_path / "splash.png")
+    splash = SplashScreen(assets_path / "app_icon.png")
     splash.show()
     
     # --- Background Initialization ---
