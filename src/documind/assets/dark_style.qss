@@ -1,29 +1,29 @@
-/* DocuMind Modern Light Theme */
+/* DocuMind Modern Dark Theme */
 
 /* General Window and Widget Styles */
 QWidget {
-    background-color: #FDFDFD;
-    color: #333333;
+    background-color: #2B2B2B;
+    color: #BBBBBB;
     font-family: "Segoe UI", Arial, sans-serif;
     font-size: 14px;
 }
 
 QMainWindow {
-    background-color: #FDFDFD;
+    background-color: #2B2B2B;
 }
 
 /* Labels and Headings */
 QLabel {
     font-weight: bold;
     font-size: 15px;
-    color: #111111;
+    color: #DDDDDD;
 }
 
 /* Text Input Fields */
 QLineEdit, QTextEdit {
-    background-color: #FFFFFF;
-    color: #333333;
-    border: 1px solid #D0D0D0;
+    background-color: #3C3F41;
+    color: #BBBBBB;
+    border: 1px solid #555555;
     border-radius: 8px;
     padding: 8px;
 }
@@ -34,26 +34,26 @@ QLineEdit:focus, QTextEdit:focus {
 
 /* Button Styles */
 QPushButton {
-    background-color: #F0F0F0;
-    color: #333333;
-    border: 1px solid #D0D0D0;
+    background-color: #4A4D4F;
+    color: #FFFFFF;
+    border: none;
     padding: 10px 18px;
     border-radius: 8px;
     font-weight: bold;
 }
 
 QPushButton:hover {
-    background-color: #E0E0E0;
+    background-color: #5A5D5F;
 }
 
 QPushButton:pressed {
-    background-color: #D0D0D0;
+    background-color: #3A3D3F;
 }
 
-/* Document List Styles */
+/* Document List Styles - FIXES THE HIGHLIGHT ISSUE */
 QListWidget {
-    background-color: #FFFFFF;
-    border: 1px solid #D0D0D0;
+    background-color: #3C3F41;
+    border: 1px solid #555555;
     border-radius: 8px;
     padding: 4px;
 }
@@ -64,7 +64,7 @@ QListWidget::item {
 }
 
 QListWidget::item:hover {
-    background-color: #F0F0F0;
+    background-color: #45494B;
 }
 
 QListWidget::item:selected {
@@ -74,11 +74,11 @@ QListWidget::item:selected {
 
 /* Progress Bar and Splitter */
 QProgressBar {
-    border: 1px solid #D0D0D0;
+    border: 1px solid #555555;
     border-radius: 8px;
-    background-color: #FFFFFF;
+    background-color: #3C3F41;
     text-align: center;
-    color: #333333;
+    color: #BBBBBB;
 }
 
 QProgressBar::chunk {
@@ -87,5 +87,5 @@ QProgressBar::chunk {
 }
 
 QSplitter::handle {
-    background-color: #E0E0E0;
+    background-color: #4A4D4F;
 }

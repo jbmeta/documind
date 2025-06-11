@@ -12,7 +12,7 @@ click==8.2.1
 colorama==0.4.6
 coloredlogs==15.0.1
 distro==1.9.0
--e git+https://github.com/jbmeta/documind.git@15d84a51f19f0617cd7b0214fd3859e3329e99a5#egg=documind
+-e git+https://github.com/jbmeta/documind.git@f7f53cb867d5a3743a0cdd2137880c45e5cbaf39#egg=documind
 durationpy==0.10
 faiss-cpu==1.11.0
 fastapi==0.115.9
@@ -36,6 +36,7 @@ joblib==1.5.1
 jsonschema==4.24.0
 jsonschema-specifications==2025.4.1
 kubernetes==32.0.1
+Markdown==3.8
 markdown-it-py==3.0.0
 MarkupSafe==3.0.2
 mdurl==0.1.2

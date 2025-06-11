@@ -2,8 +2,7 @@ import pathlib
 import json
 import numpy as np
 import faiss
-import httpx
-import asyncio
+import requests  # Use the synchronous requests library
 from sentence_transformers import SentenceTransformer
 
 # --- Constants ---
@@ -15,7 +14,7 @@ VECTOR_DIMENSION = 384
 OLLAMA_API_URL = "http://localhost:11434/api/generate"
 
 class AICore:
-    # ... (All methods remain the same except for generate_response) ...
+    # ... (__init__ and all other methods before generate_response are unchanged) ...
     def __init__(self, status_callback=None):
         self.log = lambda message: print(f"[LOG] {message}") if status_callback is None else status_callback(message)
         self.log("AI Core: Initializing...")
@@ -79,8 +78,9 @@ class AICore:
         distances, indices = self.index.search(question_embedding.astype('float32'), num_results)
         return [self.document_map[i] for i in indices[0] if i < len(self.document_map)]
 
-    async def generate_response(self, user_question: str, context: list[dict]) -> str:
-        """Constructs a prompt and gets a response from the local LLM asynchronously."""
+    # --- THIS IS THE CORRECTED SYNCHRONOUS METHOD ---
+    def generate_response(self, user_question: str, context: list[dict]) -> str:
+        """Constructs a prompt and gets a response from the local LLM synchronously."""
         if not context:
             return "I couldn't find any relevant information in your documents to answer that question."
 
@@ -88,9 +88,8 @@ class AICore:
         sources = sorted(list(set([item['metadata']['source'] for item in context])))
         sources_str = ", ".join(sources)
 
-        prompt = f"""You are a helpful question-answering assistant named DocuMind. Your task is to answer the user's question based *only* on the provided context.
-Do not use any outside knowledge. If the answer is not available in the context, say "I could not find an answer in the provided documents."
-
+        prompt = f""" Answer the user's question based only on the following context.
+    If the context doesn't contain the answer, state that you don't have enough information.
 Provide a clear and concise answer, then cite the source documents your answer is based on.
 
 CONTEXT:
@@ -99,30 +98,34 @@ CONTEXT:
 QUESTION:
 {user_question}
 
-ANSWER (be concise and cite your sources):
+ANSWER:
 """
-        # --- THIS IS THE KEY CHANGE ---
         payload = {
-            "model": "phi3:mini", # Use the smaller, more efficient model
+            "model": "phi3:mini",
             "prompt": prompt,
             "stream": False
         }
-        # --- END OF CHANGE ---
 
         try:
-            # Use an AsyncClient for non-blocking requests
-            async with httpx.AsyncClient(timeout=180.0) as client:
-                print(f"[LOG] AI Core: Sending prompt (length: {len(prompt)}) to Ollama...")
-                response = await client.post(OLLAMA_API_URL, json=payload)
-                print(f"[LOG] AI Core: Received response from Ollama with status code {response.status_code}.")
-                response.raise_for_status()
-
+            print(f"[LOG] AI Core: Sending prompt (length: {len(prompt)}) to Ollama at {OLLAMA_API_URL}...")
+            response = requests.post(
+                OLLAMA_API_URL, 
+                json=payload, 
+                timeout=180
+            )
+            print(f"[LOG] AI Core: Received response from Ollama with status code {response.status_code}.")
+            response.raise_for_status()
+            
             full_response = response.json().get("response", "").strip()
+            
+            if "I could not find an answer" in full_response:
+                return full_response
+
             return f"{full_response}\n\n**Sources:** {sources_str}"
 
-        except httpx.TimeoutException:
+        except requests.exceptions.Timeout:
             return "Error: The local AI model took too long to respond. Your system may be under heavy load."
-        except httpx.RequestError as e:
+        except requests.exceptions.RequestException as e:
             return f"Error: Could not connect to the local AI model. Please ensure Ollama is running.\n\n({e})"
         except Exception as e:
             return f"An unexpected error occurred while generating the answer: {e}"
