@@ -16,11 +16,6 @@ def chunk_text(text: str) -> list[str]:
 
 def process_document(pdf_path: Path, ai_core: AICore):
     """Orchestrates the processing of a single document."""
-    # Check if document has already been processed
-    if ai_core.has_document(pdf_path):
-        print(f"[LOG] DocumentProcessor: Skipping already processed file: {pdf_path.name}")
-        return
-
     print(f"Processing document: {pdf_path.name}")
     text = extract_text_from_pdf(pdf_path)
     if not text:
@@ -31,5 +26,5 @@ def process_document(pdf_path: Path, ai_core: AICore):
         print(f"Could not extract meaningful chunks from {pdf_path.name}.")
         return
     
-    # Pass chunks and the source path to the AI Core
-    ai_core.embed_and_store(chunks, pdf_path)
+    # Call the new, more sensible add_document method
+    ai_core.add_document(chunks, pdf_path)
