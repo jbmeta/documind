@@ -60,9 +60,7 @@ graph TD
     I --> J[Generate Question Embedding];
     J --> K[FAISS Search for Relevant Chunks];
     K --> L[Construct LLM Prompt with Context];
-    L --> M[Local LLM (Ollama)];
-    M --> N[Generate Answer];
-    N --> O[Return Answer to User];
+    L --> M[Local LLM (Ollama)] --> N[Generate Answer] --> O[Return Answer to User];
 
     subgraph Document Ingestion Flow
         B --> C; C --> D; D --> E; E --> F; F --> G;
@@ -168,6 +166,20 @@ DocuMind is a functional application, but there are several areas where it could
 * **Performance Optimization**: For very large document sets, consider optimizing FAISS index loading/saving, or exploring persistent vector databases like ChromaDB or Weaviate.
 * **Testing**: Implement a comprehensive suite of unit and integration tests for both the core logic and UI components to ensure stability and facilitate future development.
 * **Deployment**: Provide options for easier packaging and distribution of the desktop application (e.g., using PyInstaller).
+
+## Codebase Overview
+
+For developers looking to dive deeper into the DocuMind codebase, here are some key areas and their primary responsibilities:
+
+* **Application Entry Point**: `src/documind/main.py` orchestrates the application startup, splash screen, and main window initialization.
+* **AI Core Logic**: `src/documind/core/ai_core.py` is central to the AI functionalities, handling model loading, embedding generation, FAISS interactions, and communication with the local LLM.
+* **Document Handling**: `src/documind/core/document_processor.py` manages the extraction and chunking of text from PDF documents.
+* **User Interface**: The `src/documind/ui/` directory contains all PyQt6-related code.
+  * `main_window.py`: Defines the main application window and connects UI elements to backend logic.
+  * `chat_model.py`: Manages the data for the chat view, including message history and roles.
+  * `chat_delegate.py`: Customizes the appearance and behavior of individual chat messages within the view.
+  * `theme_manager.py`: Handles dynamic theme switching using QSS files from `src/documind/assets/`.
+* **Assets**: `src/documind/assets/` holds all static resources like icons and stylesheets.
 
 ## Contributing
 
