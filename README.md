@@ -60,16 +60,79 @@ graph TD
     I --> J[Generate Question Embedding];
     J --> K[FAISS Search for Relevant Chunks];
     K --> L[Construct LLM Prompt with Context];
-    L --> M[Local LLM (Ollama)] --> N[Generate Answer] --> O[Return Answer to User];
+    L --> M[Local LLM Ollama];
+    M --> N[Generate Answer Based on Context Only];
+    N --> O[Add Source Citations];
+    O --> P[Return Answer to User];
 
     subgraph Document Ingestion Flow
         B --> C; C --> D; D --> E; E --> F; F --> G;
     end
 
     subgraph Query & Response Flow
-        H --> I; I --> J; J --> K; K --> L; L --> M; M --> N; N --> O;
+        H --> I; I --> J; J --> K; K --> L; L --> M; M --> N; N --> O; O --> P;
     end
 ```
+
+*Note: If the diagram does not render correctly on GitHub, try refreshing the page or viewing it in a different browser. GitHub's Mermaid rendering may sometimes require a refresh to display properly.*
+
+### Recommended Additional Diagrams
+
+To further enhance the understanding of DocuMind's structure and functionality, the following diagrams are recommended for inclusion in this documentation:
+
+1. **Architecture Diagram**: This diagram would provide a high-level overview of the application's structure, showing the interaction between the PyQt6 UI, the AI core logic, document processing components, and external dependencies like the local LLM (Ollama). It would help developers understand the modular design and data flow at a glance.
+
+   ```mermaid
+   graph TD
+       A[User Interface PyQt6] --> B[AI Core Logic];
+       A --> C[Document Processor];
+       B --> D[Local LLM Ollama];
+       B --> E[FAISS Vector Index];
+       C --> B;
+       subgraph Application Layers
+           A; B; C;
+       end
+       subgraph External Services
+           D;
+       end
+       subgraph Data Storage
+           E;
+       end
+   ```
+
+2. **UI Component Diagram**: This would illustrate the hierarchy and relationship of key UI components within the PyQt6 interface, such as the main window, chat interface, and theme management elements. It can aid in understanding the user experience flow.
+
+   ```mermaid
+   graph TD
+       A[Main Window] --> B[Chat Interface];
+       A --> C[Document Selection];
+       A --> D[Theme Toggle];
+       B --> E[Message Display];
+       B --> F[Input Field];
+       subgraph UI Components
+           A; B; C; D; E; F;
+       end
+   ```
+
+3. **Data Persistence Diagram**: This diagram would depict how processed document data (FAISS index and metadata) is stored and retrieved from the `documind_data/` directory, clarifying the persistence mechanism across application sessions.
+
+   ```mermaid
+   graph LR
+       A[AI Core] --> B[FAISS Index];
+       A --> C[Document Metadata];
+       B --> D[documind_data/documind_index.faiss];
+       C --> E[documind_data/documind_library.json];
+       D --> B;
+       E --> C;
+       subgraph In-Memory Data
+           B; C;
+       end
+       subgraph Disk Storage
+           D; E;
+       end
+   ```
+
+These diagrams are placeholders and can be refined or expanded based on feedback or specific needs. They aim to provide visual insights into different aspects of DocuMind beyond the core workflow.
 
 ## Prerequisites
 
